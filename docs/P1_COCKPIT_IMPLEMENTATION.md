@@ -2,9 +2,7 @@
 
 **记录日期**：2026-10-27  
 **目标**：在其它窗口/项目复现当前座舱页（360×780 dp）  
-**基线截图**：
-
-![P1 COCKPIT 基线](images/p1-cockpit-dashboard.png)
+**基线截图**：真机截图属于本地中间产物，不入库（`docs/images/` 已在 `.gitignore`）。
 
 **代码基线**：
 
@@ -657,7 +655,7 @@ adb install -r app\build\outputs\apk\debug\app-debug.apk
 
 ## 11. Bluetooth Console
 
-![Bluetooth console](images/p1-link-console.png)
+> 真机截图不入库（`docs/images/` 已在 `.gitignore`）。
 
 ### 11.1 和旧代码的差异
 

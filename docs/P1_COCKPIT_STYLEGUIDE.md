@@ -8,7 +8,9 @@
 > 这份文档是后续 UI 的“母版”。新页面先对齐这里的颜色、字号、行高、边框、密度和状态语义，再谈新布局。  
 > 不要用 Material 默认卡片的视觉语言覆盖它。
 
-![PINTA P1 COCKPIT 真机基线](images/p1-cockpit-dashboard.png)
+> **基线截图**：真机截图属于本地中间产物，不入库（`docs/images/` 已在 `.gitignore`）。
+> 需要对照时自行在 360×780 dp 真机上截一张；旧图仍可从历史提交取回：
+> `git show 5d23438:docs/images/p1-cockpit-dashboard.png > baseline.png`
 
 ---
 
@@ -425,7 +427,7 @@ val needScroll = maxHeight < 570.dp || faultCode != 0
 - [ ] 数字等宽、固定小数位、单位缩小、右对齐。
 - [ ] 面板高度/行高按 360×780 真机校准；360×640 可滚动。
 - [ ] `SIM` / `NO LINK` 状态真实，不伪造。
-- [ ] 截图与 `images/p1-cockpit-dashboard.png` 并排比较，密度和字重一致。
+- [ ] 截图与 360×780 dp 真机基线并排比较，密度和字重一致。
 
 ---
 

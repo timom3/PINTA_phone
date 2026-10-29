@@ -9,9 +9,8 @@
 > 已在真机 SM-S9210 上安装验证（`adb install` 通过，四个 tab 全部可交互）。
 > 真机比设计基准窄 24dp / 矮 52dp，第一版把四轮输出卡的最后两行裁掉了，
 > 已改为「四行按权重平分 + 卡片高度自适应」，现在 360×780 也能完整显示。
-> 真机截图见 `shots/phone-*.png`。
-> 新版 P1 COCKPIT 座舱页真机截图见 [phone-41-header-dash.png](shots/phone-41-header-dash.png)（含固定全局页头、`IO` 与四电机 2×2 三曲线矩阵）；
-> 蓝牙控制台真机截图见 [phone-53-link-console.png](shots/phone-53-link-console.png)（扫描 + `BT RAW` + `CCP PROTOCOL` + 带宽/延迟）；
+> 真机截图属于本地中间产物，不入库（`shots/`、`docs/images/` 已加进 `.gitignore`）：
+> 座舱页含固定全局页头、`IO` 与四电机 2×2 三曲线矩阵；蓝牙控制台含扫描 + `BT RAW` + `CCP PROTOCOL` + 带宽/延迟。
 > 设计基线见 [P1_COCKPIT_STYLEGUIDE.md](docs/P1_COCKPIT_STYLEGUIDE.md)，实现复现见 [P1_COCKPIT_IMPLEMENTATION.md](docs/P1_COCKPIT_IMPLEMENTATION.md)；
 > 机器可读 token 见 [p1-cockpit-tokens.json](docs/p1-cockpit-tokens.json)；设计 brief 见 [CRT_GREEN_UI_BRIEF.md](docs/CRT_GREEN_UI_BRIEF.md)；
 > 版本记录见 [CHANGELOG.md](CHANGELOG.md)（当前 `0.1.1`，座舱速览量程自动适配 + 180s 历史 + 屏幕常亮）。
