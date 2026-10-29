@@ -38,11 +38,13 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
@@ -66,6 +68,7 @@ import com.pinta.phone.ble.Ble
 import com.pinta.phone.ble.Ccu
 import com.pinta.phone.ble.LinkState
 import com.pinta.phone.core.Telemetry
+import com.pinta.phone.core.MotorAxis
 import com.pinta.phone.core.f0
 import com.pinta.phone.core.SpeedSettings
 import com.pinta.phone.core.f1
@@ -88,9 +91,14 @@ import com.pinta.phone.ui.theme.TextDim
 import com.pinta.phone.ui.theme.TextFaint
 import com.pinta.phone.ui.theme.TextPrimary
 import java.util.Locale
+import kotlin.math.abs
 import kotlin.math.roundToInt
+import kotlinx.coroutines.delay
 
 private val WheelLabels = listOf("FL", "FR", "RL", "RR")
+
+/** 座舱速览窗口显示最近约 7 秒（20Hz × 7 ≈ 140 帧）。 */
+private const val MOTOR_TRACE_CAPACITY = 140
 
 /**
  * 仪表：一屏工程遥测，而不是四张大字卡片。
@@ -138,22 +146,22 @@ fun DashScreen(link: LinkState) {
     val om3 = t.motorOmega.getOrElse(3) { 0f }
 
     val iqTraces = listOf(
-        rememberTrace(iq0, tick ?: iq0),
-        rememberTrace(iq1, tick ?: iq1),
-        rememberTrace(iq2, tick ?: iq2),
-        rememberTrace(iq3, tick ?: iq3),
+        rememberTrace(iq0, tick ?: iq0, capacity = MOTOR_TRACE_CAPACITY),
+        rememberTrace(iq1, tick ?: iq1, capacity = MOTOR_TRACE_CAPACITY),
+        rememberTrace(iq2, tick ?: iq2, capacity = MOTOR_TRACE_CAPACITY),
+        rememberTrace(iq3, tick ?: iq3, capacity = MOTOR_TRACE_CAPACITY),
     )
     val ibusTraces = listOf(
-        rememberTrace(ib0, tick ?: ib0),
-        rememberTrace(ib1, tick ?: ib1),
-        rememberTrace(ib2, tick ?: ib2),
-        rememberTrace(ib3, tick ?: ib3),
+        rememberTrace(ib0, tick ?: ib0, capacity = MOTOR_TRACE_CAPACITY),
+        rememberTrace(ib1, tick ?: ib1, capacity = MOTOR_TRACE_CAPACITY),
+        rememberTrace(ib2, tick ?: ib2, capacity = MOTOR_TRACE_CAPACITY),
+        rememberTrace(ib3, tick ?: ib3, capacity = MOTOR_TRACE_CAPACITY),
     )
     val omegaTraces = listOf(
-        rememberTrace(om0, tick ?: om0),
-        rememberTrace(om1, tick ?: om1),
-        rememberTrace(om2, tick ?: om2),
-        rememberTrace(om3, tick ?: om3),
+        rememberTrace(om0, tick ?: om0, capacity = MOTOR_TRACE_CAPACITY),
+        rememberTrace(om1, tick ?: om1, capacity = MOTOR_TRACE_CAPACITY),
+        rememberTrace(om2, tick ?: om2, capacity = MOTOR_TRACE_CAPACITY),
+        rememberTrace(om3, tick ?: om3, capacity = MOTOR_TRACE_CAPACITY),
     )
 
     // 车速：dyn_fb 的 ω 取勾选轮子里最慢的一个，按标定的 RPM/pu 与轮周长换算
@@ -161,6 +169,35 @@ fun DashScreen(link: LinkState) {
     val omegaPu = dynFrame?.wheels?.map { it.omegaPu } ?: emptyList()
     val speedKph = speedConfig.speedKph(omegaPu)
     var showSpeedDialog by remember { mutableStateOf(false) }
+    // 03–06 速览窗口点开的历史详情（null = 关闭）
+    var historyWheel by remember { mutableStateOf<Int?>(null) }
+
+    // Y 轴量程：四个速览窗口共用一档（±1.0 / ±1.5 / ±2.0），按 12 条曲线的绝对值挑；
+    // 升档立即、降档要等 2s（MotorAxis），弹窗用自己独立的量程
+    val traceMaxAbs = (iqTraces + ibusTraces + omegaTraces)
+        .maxOfOrNull { series -> series.maxOfOrNull { abs(it) } ?: 0f }
+        ?: 0f
+    var yRange by remember { mutableStateOf(MotorAxis.current()) }
+    // 断线回到默认档：断线后 trace 不再进新值，否则量程会一直停在最后一档
+    LaunchedEffect(link) {
+        if (link !is LinkState.Connected) {
+            MotorAxis.reset()
+            yRange = MotorAxis.current()
+        }
+    }
+    // 有新数据就立即判档（升档不等心跳，看到尖峰马上放大）
+    LaunchedEffect(traceMaxAbs) {
+        yRange = MotorAxis.update(traceMaxAbs)
+    }
+    // 心跳：traceMaxAbs 不变时上面那个 effect 不会重启，靠这里每 250ms 走一次
+    // —— 高峰数据滑出 7s 窗口后，等 hold 到期把量程收回来
+    val latestMaxAbs by rememberUpdatedState(traceMaxAbs)
+    LaunchedEffect(Unit) {
+        while (true) {
+            delay(250L)
+            yRange = MotorAxis.update(latestMaxAbs)
+        }
+    }
 
     CompositionLocalProvider(LocalTextStyle provides TextStyle(lineHeight = 1.em)) {
         Box(modifier = Modifier.fillMaxSize().background(Ink)) {
@@ -197,6 +234,11 @@ fun DashScreen(link: LinkState) {
                         iqTraces = iqTraces,
                         ibusTraces = ibusTraces,
                         omegaTraces = omegaTraces,
+                        yRange = yRange,
+                        onMotorClick = {
+                            historyWheel = it
+                            Ccu.pauseDyn()
+                        },
                         modifier = if (needScroll) Modifier.fillMaxWidth().height(300.dp)
                         else Modifier.weight(1f),
                     )
@@ -218,6 +260,19 @@ fun DashScreen(link: LinkState) {
                 onApply = {
                     SpeedSettings.update(it)
                     showSpeedDialog = false
+                },
+            )
+        }
+
+        historyWheel?.let { wheel ->
+            // Activity 被系统回收重建时 onDismiss 不会执行，这里兜底把 dyn 恢复，
+            // 否则 dynPaused 会一直卡在 true，dyn 再也不轮询
+            DisposableEffect(wheel) { onDispose { Ccu.resumeDyn() } }
+            MotorHistoryDialog(
+                initialWheel = wheel,
+                onDismiss = {
+                    historyWheel = null
+                    Ccu.resumeDyn()
                 },
             )
         }
@@ -693,6 +748,8 @@ private fun MotorGrid(
     iqTraces: List<List<Float>>,
     ibusTraces: List<List<Float>>,
     omegaTraces: List<List<Float>>,
+    yRange: Float = 1f,
+    onMotorClick: (Int) -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -703,15 +760,15 @@ private fun MotorGrid(
             modifier = Modifier.fillMaxWidth().weight(1f),
             horizontalArrangement = Arrangement.spacedBy(4.dp),
         ) {
-            MotorCell("03", "FL", 0, t, iqTraces, ibusTraces, omegaTraces, Modifier.weight(1f))
-            MotorCell("04", "FR", 1, t, iqTraces, ibusTraces, omegaTraces, Modifier.weight(1f))
+            MotorCell("03", "FL", 0, t, iqTraces, ibusTraces, omegaTraces, yRange, Modifier.weight(1f)) { onMotorClick(0) }
+            MotorCell("04", "FR", 1, t, iqTraces, ibusTraces, omegaTraces, yRange, Modifier.weight(1f)) { onMotorClick(1) }
         }
         Row(
             modifier = Modifier.fillMaxWidth().weight(1f),
             horizontalArrangement = Arrangement.spacedBy(4.dp),
         ) {
-            MotorCell("05", "RL", 2, t, iqTraces, ibusTraces, omegaTraces, Modifier.weight(1f))
-            MotorCell("06", "RR", 3, t, iqTraces, ibusTraces, omegaTraces, Modifier.weight(1f))
+            MotorCell("05", "RL", 2, t, iqTraces, ibusTraces, omegaTraces, yRange, Modifier.weight(1f)) { onMotorClick(2) }
+            MotorCell("06", "RR", 3, t, iqTraces, ibusTraces, omegaTraces, yRange, Modifier.weight(1f)) { onMotorClick(3) }
         }
     }
 }
@@ -725,7 +782,9 @@ private fun MotorCell(
     iqTraces: List<List<Float>>,
     ibusTraces: List<List<Float>>,
     omegaTraces: List<List<Float>>,
+    yRange: Float = 1f,
     modifier: Modifier = Modifier,
+    onClick: () -> Unit = {},
 ) {
     val ctrlTemp = t.controllerTemps.getOrElse(motorIndex) { 0f }
     val motorTemp = t.wheelTemps.getOrElse(motorIndex) { 0f }
@@ -740,7 +799,9 @@ private fun MotorCell(
         modifier = modifier
             .fillMaxHeight()
             .background(SurfaceLow.copy(alpha = 0.18f))
-            .border(1.dp, Hairline),
+            .border(1.dp, Hairline)
+            // 按住 2 秒才进历史，避免误触
+            .longPressAction(onLongPress = onClick),
     ) {
         Column(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 3.dp),
@@ -793,6 +854,7 @@ private fun MotorCell(
             iq = iqTraces.getOrElse(motorIndex) { emptyList() },
             ibus = ibusTraces.getOrElse(motorIndex) { emptyList() },
             omega = omegaTraces.getOrElse(motorIndex) { emptyList() },
+            range = yRange,
             modifier = Modifier.fillMaxWidth().weight(1f).padding(horizontal = 4.dp, vertical = 2.dp),
         )
         Row(
@@ -830,6 +892,7 @@ private fun MotorCurves(
     iq: List<Float>,
     ibus: List<Float>,
     omega: List<Float>,
+    range: Float = 1f,
     modifier: Modifier = Modifier,
 ) {
     Canvas(modifier = modifier) {
@@ -841,7 +904,7 @@ private fun MotorCurves(
             drawLine(grid, Offset(x, 0f), Offset(x, size.height), 1f)
             drawLine(grid, Offset(0f, y), Offset(size.width, y), 1f)
         }
-        // ±1 双向量程：中间那条就是 0，画亮一点当零线
+        // 双向量程（±range）：中间那条就是 0，画亮一点当零线
         drawLine(
             color = Phosphor.copy(alpha = 0.28f),
             start = Offset(0f, size.height / 2f),
@@ -857,9 +920,9 @@ private fun MotorCurves(
             val path = Path()
             values.forEachIndexed { i, raw ->
                 val x = pad + i * (w / (values.size - 1))
-                // -1..+1 -> 底..顶，0 正好落在中线
-                val v = raw.coerceIn(-1f, 1f)
-                val y = pad + (1f - (v + 1f) / 2f) * h
+                // -range..+range -> 底..顶，0 正好落在中线
+                val v = raw.coerceIn(-range, range)
+                val y = pad + (1f - (v / range + 1f) / 2f) * h
                 if (i == 0) path.moveTo(x, y) else path.lineTo(x, y)
             }
             drawPath(

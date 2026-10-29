@@ -13,13 +13,14 @@
 > 新版 P1 COCKPIT 座舱页真机截图见 [phone-41-header-dash.png](shots/phone-41-header-dash.png)（含固定全局页头、`IO` 与四电机 2×2 三曲线矩阵）；
 > 蓝牙控制台真机截图见 [phone-53-link-console.png](shots/phone-53-link-console.png)（扫描 + `BT RAW` + `CCP PROTOCOL` + 带宽/延迟）；
 > 设计基线见 [P1_COCKPIT_STYLEGUIDE.md](docs/P1_COCKPIT_STYLEGUIDE.md)，实现复现见 [P1_COCKPIT_IMPLEMENTATION.md](docs/P1_COCKPIT_IMPLEMENTATION.md)；
-> 机器可读 token 见 [p1-cockpit-tokens.json](docs/p1-cockpit-tokens.json)；设计 brief 见 [CRT_GREEN_UI_BRIEF.md](docs/CRT_GREEN_UI_BRIEF.md)。
+> 机器可读 token 见 [p1-cockpit-tokens.json](docs/p1-cockpit-tokens.json)；设计 brief 见 [CRT_GREEN_UI_BRIEF.md](docs/CRT_GREEN_UI_BRIEF.md)；
+> 版本记录见 [CHANGELOG.md](CHANGELOG.md)（当前 `0.1.1`，座舱速览量程自动适配 + 180s 历史 + 屏幕常亮）。
 
 ## 现在能跑什么
 
 | 模块 | 状态 | 说明 |
 |---|---|---|
-| 座舱 | 部分真实 | **01 `DRIVE`：THR 进度条按 pu 驱动、读数显示百分比，STR 进度条与读数都是 pu，V 取 V_IU；车速来自 dyn_fb（勾选轮子里最慢的一个），点车速数字弹出「SPEED CALIB」标定框**；I 与 P 仍显示 0；**02 `IO` 全量真实**（readVar 0x1A/0x1B，type=200，4Hz）：档位/REV/FIX/P/L/R/BRK、转把与转向 pu、NTC、2.0REF、V_IU/V_ACC/V_12；**四电机卡真实**（type=201 `packIU_dynFB`，≈20Hz）：Iq/Ibus/ω 一律按 **pu（q1.14/16384，3 位小数）**显示、曲线 **±1 双向量程（中间零线）**、按帧时间戳连续推进，控制器/电机温度按 1℃ 显示、故障码。EVENT 条显示最新蓝牙事件，点开是链路日志 |
+| 座舱 | 部分真实 | **01 `DRIVE`：THR 进度条按 pu 驱动、读数显示百分比，STR 进度条与读数都是 pu，V 取 V_IU；车速来自 dyn_fb（勾选轮子里最慢的一个），点车速数字弹出「SPEED CALIB」标定框**；I 与 P 仍显示 0；**02 `IO` 全量真实**（readVar 0x1A/0x1B，type=200，4Hz）：档位/REV/FIX/P/L/R/BRK、转把与转向 pu、NTC、2.0REF、V_IU/V_ACC/V_12；**四电机卡真实**（type=201 `packIU_dynFB`，≈20Hz）：Iq/Ibus/ω 一律按 **pu（q1.14/16384，3 位小数）**显示、速览曲线 **双向量程（中间零线），量程按数据自动分档 ±1.0/±1.5/±2.0、升档立即、降档要 2s 无高峰数据，弹窗量程独立计算**、按帧时间戳连续推进（最近约 7s），控制器/电机温度按 1℃ 显示、故障码；**长按 03–06 任一卡片 2 秒弹出 180s 历史**（弹窗内可多选 FL/FR/RL/RR 纵向排列、居中光标读数、双指缩放、左右拖动；**打开时暂停 dyn 轮询、关闭恢复**，EVENT 有提示；数据只在内存，选择只记在当前进程）。EVENT 条显示最新蓝牙事件，点开是链路日志 |
 | 调校入口 | 可交互 | 5 个模块清单（布局 / 油门 / 转向差速 / 电池 / 控制器） |
 | 油门曲线 | 可交互 | 与固件 `L1_THR_curve()` 一致的两段折线；拖动折点改 tpX/tpY；模拟输入滑条；8 项参数；大号数字键盘；读取 / 写入 / 保存 Flash 三段式状态机（模拟） |
 | 监控 | 静态骨架 | 8 通道选择、示波器网格、采样设置（未接 ACQ） |
@@ -91,7 +92,7 @@ adb install -r app\build\outputs\apk\debug\app-debug.apk
 ## 已知限制
 
 - 所有实时数据来自 `rememberDemoTelemetry()`，不是真车数据 —— 除了座舱 01 `DRIVE`（THR/STR/V）、02 `IO`
-  和四电机卡：它们走真实 `readVar`（type=200 IO 4Hz / type=201 dyn_fb），控制台打开时暂停轮询
+  和四电机卡：它们走真实 `readVar`（type=200 IO 4Hz / type=201 dyn_fb），控制台打开时暂停轮询；前台保持屏幕常亮（不熄屏、不锁屏）
 - dyn_fb 与 IO 4Hz 共存时稳定跑 **20Hz**（实测 19.9–20.9，IO 3.8–4.2）：模块/固件总共约 30 应答/s，
   20+4 留余量才不丢包；只跑 dyn 时能到 32–36Hz，但混着发会互相丢。想更快就让固件按 N 帧打包回
 - 轮询节奏在 `Ccu.kt`：`IU_DYN_PERIOD_MS = 40`（dyn 20Hz）、IO 每 250ms 一个 40ms 独占窗口；

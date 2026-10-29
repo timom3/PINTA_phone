@@ -21,3 +21,6 @@ keystore/
 .home/
 .tmp/
 .dsh-write-test
+
+# 打包产物（发版走 GitHub Release，不入库）
+dist/

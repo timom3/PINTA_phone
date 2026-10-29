@@ -64,6 +64,7 @@ import com.pinta.phone.ble.Ble
 import com.pinta.phone.ble.BleDevice
 import com.pinta.phone.ble.Ccu
 import com.pinta.phone.ble.LinkState
+import com.pinta.phone.core.MotorHistory
 import com.pinta.phone.ui.components.HairlineH
 import com.pinta.phone.ui.components.PintaButton
 import com.pinta.phone.ui.components.SectionLabel
@@ -290,6 +291,22 @@ fun PintaApp() {
     val log by Ble.log.collectAsState()
     val mtu by Ble.mtu.collectAsState()
     val phy by Ble.phy.collectAsState()
+
+    // 四电机历史（180s 环形缓冲，只在内存里）：dashboard 不在前台时也持续记录
+    val dyn by Ccu.dyn.collectAsState()
+    LaunchedEffect(dyn) {
+        dyn?.let { frame ->
+            MotorHistory.record(
+                t = frame.at,
+                iqPu = FloatArray(4) { i -> frame.wheels.getOrNull(i)?.iqPu ?: 0f },
+                ibusPu = FloatArray(4) { i -> frame.wheels.getOrNull(i)?.ibusPu ?: 0f },
+                omegaPu = FloatArray(4) { i -> frame.wheels.getOrNull(i)?.omegaPu ?: 0f },
+                ctrlC = IntArray(4) { i -> frame.wheels.getOrNull(i)?.ctrlC ?: -50 },
+                motorC = IntArray(4) { i -> frame.wheels.getOrNull(i)?.motorC ?: -50 },
+                fault = IntArray(4) { i -> frame.wheels.getOrNull(i)?.fault ?: 0 },
+            )
+        }
+    }
 
     var tab by rememberSaveable { mutableStateOf(Tab.Dash) }
     var route by rememberSaveable { mutableStateOf<String?>(null) }

@@ -318,6 +318,22 @@ object Ccu {
     @Volatile
     private var ioBusy = false
 
+    /** 打开历史弹窗时暂停 dyn 读取（IO 继续跑）. */
+    @Volatile
+    private var dynPaused = false
+
+    fun pauseDyn() {
+        if (dynPaused) return
+        dynPaused = true
+        Ble.note("历史查看中 · 暂停 dyn 读取")
+    }
+
+    fun resumeDyn() {
+        if (!dynPaused) return
+        dynPaused = false
+        Ble.note("关闭历史 · 恢复 dyn 读取")
+    }
+
     /** 本次连接是否已经往 EVENT 日志写过一次实际刷新率. */
     @Volatile
     private var rateReported = false
@@ -594,7 +610,9 @@ object Ccu {
                     lastRxAt = now
                 }
 
-                if (now >= nextSendAt && dynOutstanding < IU_DYN_DEPTH && pending == null && !ioBusy) {
+                if (now >= nextSendAt && dynOutstanding < IU_DYN_DEPTH && pending == null &&
+                    !ioBusy && !dynPaused
+                ) {
                     if (Ble.send(request)) {
                         dynOutstanding++
                         nextSendAt = now + IU_DYN_PERIOD_MS
