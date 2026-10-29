@@ -1,0 +1,257 @@
+{
+  "name": "P1 COCKPIT",
+  "version": "1.4",
+  "locked": "2026-10-27",
+  "platform": "Android / Jetpack Compose / Material3",
+  "target": {
+    "device": "Samsung SM-S9210",
+    "widthPx": 1080,
+    "heightPx": 2340,
+    "densityDpi": 480,
+    "widthDp": 360,
+    "heightDp": 780,
+    "orientation": "portrait"
+  },
+  "colors": {
+    "ink": "#030805",
+    "surfaceLow": "#07110B",
+    "surfaceContainer": "#0A150E",
+    "surfaceHigh": "#102117",
+    "surfaceHighest": "#162C1D",
+    "phosphor": "#4DFF7C",
+    "phosphorHot": "#B6FFC9",
+    "phosphorDim": "#2E8F55",
+    "amber": "#FFB020",
+    "danger": "#FF4D4D",
+    "textPrimary": "#CFFFE0",
+    "textDim": "#7FAE8D",
+    "textFaint": "#5E8C70",
+    "hairline": "#1F58FF8C",
+    "hairlineStrong": "#3858FF8C",
+    "legacyMint": "#8CFFB0"
+  },
+  "colorUsage": {
+    "normal": "phosphor",
+    "selected": "inverse: phosphor background + black text",
+    "changedOrCaution": "amber",
+    "faultOrDestructive": "danger",
+    "hairline": "1px borders, dividers, chart grids",
+    "panelFill": "surfaceLow at 28% alpha"
+  },
+  "typography": {
+    "fontFamilies": {
+      "mono": "FontFamily.Monospace",
+      "sans": "FontFamily.SansSerif",
+      "note": "system fonts; retest metrics before bundling IBM Plex Mono"
+    },
+    "global": {
+      "displaySmall": { "font": "mono", "sizeSp": 26, "weight": "SemiBold", "letterSpacingSp": -0.4, "features": "tnum" },
+      "headlineMedium": { "font": "mono", "sizeSp": 18, "weight": "Medium", "letterSpacingSp": -0.2, "features": "tnum" },
+      "titleLarge": { "font": "sans", "sizeSp": 15, "weight": "SemiBold" },
+      "titleMedium": { "font": "sans", "sizeSp": 13, "weight": "Medium" },
+      "bodyMedium": { "font": "sans", "sizeSp": 12, "weight": "Regular" },
+      "bodySmall": { "font": "sans", "sizeSp": 10, "weight": "Regular" },
+      "labelMedium": { "font": "mono", "sizeSp": 10, "weight": "Medium", "letterSpacingSp": 0.6 },
+      "labelSmall": { "font": "mono", "sizeSp": 9, "weight": "Medium", "letterSpacingSp": 1.0 }
+    },
+    "dashboard": {
+      "lineHeight": "1.em via CompositionLocalProvider(LocalTextStyle provides TextStyle(lineHeight = 1.em))",
+      "brand": { "sizeSp": 10, "weight": "Bold", "letterSpacingSp": 1.2 },
+      "brandSuffix": { "sizeSp": 8, "letterSpacingSp": 0.4 },
+      "linkToken": { "sizeSp": 9, "weight": "Medium" },
+      "context": { "sizeSp": 8 },
+      "pageIndex": { "sizeSp": 8 },
+      "pageTitle": { "sizeSp": 10, "weight": "Medium", "letterSpacingSp": 1.4 },
+      "panelTitle": { "sizeSp": 8, "weight": "Medium", "letterSpacingSp": 1.0 },
+      "panelStatus": { "sizeSp": 8 },
+      "speed": { "sizeSp": 26, "weight": "SemiBold" },
+      "speedUnit": { "sizeSp": 9 },
+      "barLabel": { "sizeSp": 8 },
+      "tableHeader": { "sizeSp": 7 },
+      "ioKeyGlyph": { "sizeSp": 11, "weight": "SemiBold" },
+      "ioKeyLabel": { "sizeSp": 6 },
+      "ioAnalogLabel": { "sizeSp": 8 },
+      "ioAnalogValue": { "sizeSp": 10 },
+      "ioSenseLabel": { "sizeSp": 6.5 },
+      "ioSenseValue": { "sizeSp": 8 },
+      "motorCellIndex": { "sizeSp": 7 },
+      "motorCellTitle": { "sizeSp": 10, "weight": "Medium" },
+      "motorCellStatus": { "sizeSp": 7 },
+      "motorLegend": { "sizeSp": 6 },
+      "event": { "sizeSp": 8 },
+      "eventState": { "sizeSp": 9 },
+      "navLabel": { "sizeSp": 9 }
+    }
+  },
+  "layout": {
+    "screenPadding": { "horizontalDp": 6, "verticalDp": 4 },
+    "moduleGapDp": 4,
+    "header": {
+      "topRailDp": 32,
+      "pageHeaderDp": 20,
+      "hairlines": 2,
+      "fixedTopRail": "PINTA // FIELD CONSOLE",
+      "pages": {
+        "cockpit": "00 // COCKPIT",
+        "tune": "10 // TUNE",
+        "scope": "20 // SCOPE",
+        "system": "30 // SYSTEM",
+        "tuneDetail": {
+          "layout": "10.1 // LAYOUT",
+          "throttle": "10.2 // THROTTLE",
+          "steering": "10.3 // STEERING",
+          "battery": "10.4 // BATTERY",
+          "nodes": "10.5 // NODES"
+        }
+      }
+    },
+    "modules": {
+      "driveDp": 94,
+      "ioDp": 146,
+      "ioCompactDp": 140,
+      "motorGrid": "weight(1f), approx 331dp; 300dp when scrolling",
+      "eventDp": 18,
+      "faultDp": 22
+    },
+    "ioLayout": {
+      "sectionLabels": false,
+      "groupGapDp": 4,
+      "rowWeights": [1.25, 1.0, 1.0],
+      "keyGapDp": 2,
+      "readoutGapDp": 4,
+      "keyColumns": 9,
+      "analogColumns": 2,
+      "senseColumns": 5,
+      "readoutAlign": "label and value each centered in 1:1 halves",
+      "readoutWeights": [1.0, 1.0],
+      "activeColor": "phosphor",
+      "demoCycle": {
+        "gearSeconds": 2.0,
+        "auxSeconds": 1.5,
+        "auxOrder": ["R", "FIX", "P", "L", "R", "BRK"]
+      }
+    },
+    "linkConsole": {
+      "mode": "full-screen overlay, no Material sheet",
+      "headerDp": 52,
+      "connectionStripDp": 34,
+      "deviceRailDp": 28,
+      "panelWeights": { "raw": 1.0, "ccp": 1.15 },
+      "buttonDp": 22,
+      "hexInputDp": 24,
+      "latencyStripDp": 22,
+      "fontSizesSp": {
+        "title": 7,
+        "body": 6,
+        "log": 5.5,
+        "button": 6.5,
+        "value": 7
+      },
+      "longPressCopy": true
+    },
+    "breakpoints": {
+      "compactBelowDp": 630,
+      "scrollBelowDp": 570,
+      "scrollOnFault": true
+    },
+    "panel": {
+      "borderDp": 1,
+      "headerDp": 20,
+      "horizontalPaddingDp": 5,
+      "verticalPaddingDp": 4,
+      "cornerRadiusDp": 0,
+      "backgroundAlpha": 0.28
+    },
+    "bottomNav": {
+      "heightDp": 52,
+      "activeLineDp": 2,
+      "iconDp": 17,
+      "labelSp": 9,
+      "labels": ["座舱", "调校", "监控", "设置"],
+      "cockpitIcon": "custom 24x24 three-spoke wheel outline, stroke 1.8, rendered at 17dp"
+    },
+    "bar": {
+      "segments": 20,
+      "gapDp": 1,
+      "heightDp": 6
+    },
+    "sparkline": {
+      "strokeDp": 1.3,
+      "areaAlpha": 0.12,
+      "endDotDp": 1.8,
+      "gridLines": 3
+    }
+  },
+  "effects": {
+    "crtBackdrop": {
+      "vignette": { "color": "#000000", "alpha": 0.22, "centerYRatio": 0.36, "radiusRatio": 0.72 },
+      "topGlow": { "color": "#4DFF7C", "alpha": 0.035, "endYRatio": 0.22 },
+      "scanlines": { "color": "#000000", "alpha": 0.04, "stepDp": 3, "strokePx": 1 }
+    },
+    "forbidden": ["screen curvature", "RGB chromatic aberration", "continuous flicker", "idle glitch"]
+  },
+  "data": {
+    "order": ["FL", "FR", "RL", "RR"],
+    "formulas": {
+      "powerKw": "vbus * ibus / 1000"
+    },
+    "io": {
+      "keys": ["1", "2", "3", "R", "FIX", "P", "L", "R", "BRK"],
+      "analog": {
+        "throttleVolt": { "source": "throttle ADC", "unit": "V", "decimals": 2 },
+        "steerVolt": { "source": "steering ADC", "unit": "V", "decimals": 2 }
+      },
+      "sense": {
+        "ntc": { "source": "tempC", "unit": "℃", "decimals": 1 },
+        "ref2vAd": { "source": "2.0V reference", "unit": "AD", "digits": 4 },
+        "vIu": { "source": "IU battery voltage", "unit": "V", "decimals": 1 },
+        "vAcc": { "source": "controller ACC", "unit": "V", "decimals": 1 },
+        "v12": { "source": "12V rail", "unit": "V", "decimals": 1 }
+      }
+    },
+    "motorFeedback": {
+      "layout": "2x2 matrix, FL/FR top, RL/RR bottom",
+      "iq": { "source": "dyn_fb[n].Iq_pu", "scale": 135.0, "unit": "A", "decimals": 1, "curveColor": "#4DFF7C" },
+      "ibus": { "source": "dyn_fb[n].Ibus_pu", "scale": 40.0, "unit": "A", "decimals": 1, "curveColor": "#FFB020" },
+      "omega": { "source": "dyn_fb[n].omega_pu", "scale": 2000.0, "unit": "RPM", "decimals": 0, "curveColor": "#CFFFE0" },
+      "controllerTemp": { "source": "dyn_fb[n].tptCtrl", "unit": "℃", "decimals": 1 },
+      "motorTemp": { "source": "dyn_fb[n].tptMotor", "unit": "℃", "decimals": 1 },
+      "fault": { "source": "dyn_fb[n].errCode", "ok": "[OK]", "fault": "[E%02X]" }
+    },
+    "decimals": {
+      "speed": 1,
+      "voltage": 1,
+      "current": 1,
+      "power": 2,
+      "temperature": 1,
+      "throttleVolt": 2,
+      "steerVolt": 2,
+      "ref2vAdDigits": 4,
+      "vIu": 1,
+      "vAcc": 1,
+      "v12": 1,
+      "steering": 0,
+      "iq": 1,
+      "ibus": 1,
+      "omega": 0
+    }
+  },
+  "semantics": {
+    "normal": "phosphor / textPrimary",
+    "selected": "phosphor fill + black text",
+    "changed": "amber + label",
+    "fault": "danger + label",
+    "demo": "[SIM] amber + DEMO",
+    "disconnected": "[NO LINK] textFaint"
+  },
+  "rules": [
+    "Every high-density screen must set lineHeight = 1.em.",
+    "No Material default cards, dialogs, nav bars, shadows, or ripples.",
+    "No rounded corners on instrument surfaces.",
+    "No hero larger than 30sp.",
+    "No wheel trend lines shorter than 20dp; remove rather than keep unreadable.",
+    "Amber is not a general primary button color.",
+    "Do not fake link or protocol state; demo must show SIM.",
+    "360x640 must scroll instead of clipping."
+  ]
+}

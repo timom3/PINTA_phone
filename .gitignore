@@ -1,0 +1,23 @@
+# 构建产物
+build/
+app/build/
+.gradle/
+
+# 本地环境（含 SDK 路径与沙箱内的 Gradle home）
+local.properties
+.gradle-home/
+.android-home/
+.avd/
+
+# 签名文件（debug keystore 仅用于本地调试）
+keystore/
+
+# IDE
+.idea/
+*.iml
+.DS_Store
+
+# 沙箱 / 模拟器临时目录
+.home/
+.tmp/
+.dsh-write-test
