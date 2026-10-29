@@ -25,6 +25,5 @@ keystore/
 # 打包产物（发版走 GitHub Release，不入库）
 dist/
 
-# 截图等中间产物（不入库）
+# 调试截图等中间产物（不入库；docs/images 下的设计基线图要入库）
 shots/
-docs/images/

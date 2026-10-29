@@ -46,6 +46,8 @@
 - 新增本文件
 - `docs/P1_COCKPIT_IMPLEMENTATION.md`：补 v2.8–v3.6 版本记录，并修掉 v2.9 / v3.0 之间
   把表格截断的空行
+- 设计基线图入库：`docs/images/p1-cockpit-dashboard.jpg`、`p1-link-console.jpg`（共 683 KB，
+  JPEG）；调试过程截图 `shots/` 属中间产物，不入库（`.gitignore`）
 
 ## [0.1.0] — 2026-10-29
 
