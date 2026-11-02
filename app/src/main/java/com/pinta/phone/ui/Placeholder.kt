@@ -1,6 +1,7 @@
 package com.pinta.phone.ui
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -17,6 +18,12 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -25,6 +32,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pinta.phone.ble.LinkState
+import com.pinta.phone.core.LogChannel
+import com.pinta.phone.core.SpeedSettings
+import com.pinta.phone.core.UiLog
+import com.pinta.phone.ui.components.EventStrip
 import com.pinta.phone.ui.components.HairlineH
 import com.pinta.phone.ui.components.PintaCard
 import com.pinta.phone.ui.components.PintaTopBar
@@ -41,10 +52,19 @@ import com.pinta.phone.ui.theme.TextPrimary
 /** 监控页：先把 8 通道示波器的骨架摆出来，ACQ 引擎下一阶段接入。 */
 @Composable
 fun ScopeScreen(link: LinkState, onLinkClick: () -> Unit) {
+    val logs by UiLog.flow(LogChannel.Scope).collectAsState()
+    var selected by remember { mutableStateOf(setOf("CH1", "CH2")) }
+    LaunchedEffect(Unit) {
+        UiLog.note(
+            LogChannel.Scope,
+            "示波器待接入 · 已选 ${selected.size} 通道（${selected.sorted().joinToString("/")}）",
+        )
+    }
     Column(modifier = Modifier.fillMaxSize().background(Ink)) {
         Column(
             modifier = Modifier
-                .fillMaxSize()
+                .weight(1f)
+                .fillMaxWidth()
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 16.dp, vertical = 14.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -59,21 +79,30 @@ fun ScopeScreen(link: LinkState, onLinkClick: () -> Unit) {
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                         ) {
                             row.forEach { ch ->
+                                val on = ch in selected
                                 Box(
                                     modifier = Modifier
                                         .weight(1f)
                                         .height(30.dp)
-                                        .background(
-                                            if (ch == "CH1" || ch == "CH2") SurfaceContainer else SurfaceLow,
-                                        )
-                                        .border(1.dp, Hairline),
+                                        .background(if (on) SurfaceContainer else SurfaceLow)
+                                        .border(1.dp, Hairline)
+                                        .clickable {
+                                            val next = selected.toMutableSet()
+                                            if (on) next.remove(ch) else next.add(ch)
+                                            selected = next
+                                            UiLog.note(
+                                                LogChannel.Scope,
+                                                if (on) "取消 $ch · 共 ${next.size} 通道"
+                                                else "选中 $ch · 共 ${next.size} 通道",
+                                            )
+                                        },
                                     contentAlignment = Alignment.Center,
                                 ) {
                                     Text(
                                         text = ch,
                                         fontFamily = Mono,
                                         fontSize = 11.sp,
-                                        color = if (ch == "CH1" || ch == "CH2") TextPrimary else TextFaint,
+                                        color = if (on) TextPrimary else TextFaint,
                                     )
                                 }
                             }
@@ -123,6 +152,13 @@ fun ScopeScreen(link: LinkState, onLinkClick: () -> Unit) {
                 SettingRow("记录", "未开始")
             }
         }
+        EventStrip(
+            logs = logs,
+            sheetTitle = LogChannel.Scope.sheetTitle,
+            emptyText = LogChannel.Scope.emptyText,
+            onClear = { UiLog.clear(LogChannel.Scope) },
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+        )
     }
 }
 
@@ -140,10 +176,19 @@ private fun SettingRow(label: String, value: String) {
 /** 设置页：结构先定下来，具体能力后续补。 */
 @Composable
 fun SetupScreen(link: LinkState, onLinkClick: () -> Unit) {
+    val logs by UiLog.flow(LogChannel.Setup).collectAsState()
+    val speed by SpeedSettings.config.collectAsState()
+    LaunchedEffect(Unit) {
+        UiLog.note(
+            LogChannel.Setup,
+            "配置加载 · 车速标定 ${speed.rpmPerPu.toInt()} rpm/pu · 周长 ${speed.wheelCircCm}cm",
+        )
+    }
     Column(modifier = Modifier.fillMaxSize().background(Ink)) {
         Column(
             modifier = Modifier
-                .fillMaxSize()
+                .weight(1f)
+                .fillMaxWidth()
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 16.dp, vertical = 14.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -158,9 +203,9 @@ fun SetupScreen(link: LinkState, onLinkClick: () -> Unit) {
             PintaCard(padding = 14.dp) {
                 SectionLabel("车辆参数")
                 Spacer(Modifier.height(8.dp))
-                SettingRow("轮径", "— mm")
-                SettingRow("减速比", "—")
-                SettingRow("车速来源", "omega_pu 换算")
+                SettingRow("ωPU → RPM", "${speed.rpmPerPu.toInt()} rpm")
+                SettingRow("轮周长", "${speed.wheelCircCm} cm")
+                SettingRow("车速来源", "omega_pu × 标定换算")
             }
             PintaCard(padding = 14.dp) {
                 SectionLabel("写入安全")
@@ -177,15 +222,29 @@ fun SetupScreen(link: LinkState, onLinkClick: () -> Unit) {
                 SettingRow("固件 OTA", "暂不支持")
             }
         }
+        EventStrip(
+            logs = logs,
+            sheetTitle = LogChannel.Setup.sheetTitle,
+            emptyText = LogChannel.Setup.emptyText,
+            onClear = { UiLog.clear(LogChannel.Setup) },
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+        )
     }
 }
 
 /** 调校里尚未实现的模块，用同一套视觉说话。 */
 @Composable
 fun TuneDetailPlaceholder(title: String, onBack: () -> Unit, link: LinkState, onLinkClick: () -> Unit) {
+    val logs by UiLog.flow(LogChannel.Tune).collectAsState()
+    LaunchedEffect(title) {
+        UiLog.note(LogChannel.Tune, "$title · 交互骨架已就绪，功能待接入")
+    }
     Column(modifier = Modifier.fillMaxSize().background(Ink)) {
         Column(
-            modifier = Modifier.fillMaxSize().padding(16.dp),
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxWidth()
+                .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             PintaCard(padding = 16.dp) {
@@ -215,5 +274,12 @@ fun TuneDetailPlaceholder(title: String, onBack: () -> Unit, link: LinkState, on
                 modifier = Modifier.fillMaxWidth(),
             )
         }
+        EventStrip(
+            logs = logs,
+            sheetTitle = LogChannel.Tune.sheetTitle,
+            emptyText = LogChannel.Tune.emptyText,
+            onClear = { UiLog.clear(LogChannel.Tune) },
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+        )
     }
 }

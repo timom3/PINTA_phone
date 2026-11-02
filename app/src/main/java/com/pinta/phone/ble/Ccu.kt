@@ -526,9 +526,22 @@ object Ccu {
 
     // ---- packIU_IO / packIU_dynFB 轮询 -------------------------------------
 
-    /** 链路建立后由 Ble 调用：IO 4Hz + dyn_fb 20Hz。 */
+    /** 是否允许轮询：只有停在座舱页（且控制台没打开）才轮询。 */
+    @Volatile
+    private var pollingWanted = true
+
+    /**
+     * 页面切换时调用：进座舱打开轮询、离开座舱关掉。
+     * 关掉后 [startIoPolling]（例如重连后 Ble 自动调用）也不会再启动。
+     */
+    fun setPollingEnabled(enabled: Boolean) {
+        pollingWanted = enabled
+        if (enabled) startIoPolling() else stopIoPolling()
+    }
+
+    /** 链路建立后由 Ble 调用：IO 4Hz + dyn_fb 20Hz（不在座舱页时自动跳过）。 */
     fun startIoPolling() {
-        rateReported = false
+        if (!pollingWanted) return
         startIoLoop()
         startDynLoop()
     }
@@ -662,6 +675,8 @@ object Ccu {
     fun clearIo() {
         _io.value = null
         _dyn.value = null
+        // 断线了，下次连上重新报一次实测刷新率
+        rateReported = false
     }
 
     /** readVar：返回应答帧的 data 段（dev / type / addr / payload）。 */

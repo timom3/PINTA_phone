@@ -22,6 +22,8 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -37,9 +39,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pinta.phone.ble.LinkState
+import com.pinta.phone.core.LogChannel
 import com.pinta.phone.core.ThrottleParams
+import com.pinta.phone.core.UiLog
 import com.pinta.phone.core.pct
 import com.pinta.phone.core.trimmed
+import com.pinta.phone.ui.components.EventStrip
 import com.pinta.phone.ui.components.HairlineH
 import com.pinta.phone.ui.components.MetricText
 import com.pinta.phone.ui.components.NumberPadSheet
@@ -131,6 +136,10 @@ fun ThrottleScreen(
     onBack: () -> Unit,
 ) {
     val scope = rememberCoroutineScope()
+    val logs by UiLog.flow(LogChannel.Tune).collectAsState()
+    LaunchedEffect(Unit) {
+        UiLog.note(LogChannel.Tune, "油门曲线 · 8 项 refData 已载入")
+    }
 
     var read by remember { mutableStateOf(ThrottleParams.Default) }
     var edit by remember { mutableStateOf(ThrottleParams.Default) }
@@ -224,9 +233,25 @@ fun ThrottleScreen(
             transfer = transfer,
             changeCount = changes.size,
             busy = busy,
-            onRead = { simulateRead() },
-            onWrite = { confirmWrite = true },
-            onSaveFlash = { simulateFlashSave() },
+            onRead = {
+                UiLog.note(LogChannel.Tune, "读取油门曲线 refData")
+                simulateRead()
+            },
+            onWrite = {
+                UiLog.note(LogChannel.Tune, "请求写入 ${changes.size} 项（需确认）")
+                confirmWrite = true
+            },
+            onSaveFlash = {
+                UiLog.note(LogChannel.Tune, "保存到 Flash")
+                simulateFlashSave()
+            },
+        )
+        EventStrip(
+            logs = logs,
+            sheetTitle = LogChannel.Tune.sheetTitle,
+            emptyText = LogChannel.Tune.emptyText,
+            onClear = { UiLog.clear(LogChannel.Tune) },
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
         )
     }
 

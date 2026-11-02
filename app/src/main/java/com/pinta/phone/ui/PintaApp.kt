@@ -312,6 +312,20 @@ fun PintaApp() {
     var route by rememberSaveable { mutableStateOf<String?>(null) }
     var showLink by remember { mutableStateOf(false) }
 
+    // 只有停在座舱页（且控制台没打开）才轮询 IO/dyn；离开座舱暂停，回来恢复
+    val pollingWanted = tab == Tab.Dash && !showLink
+    var pollingInitialized by remember { mutableStateOf(false) }
+    LaunchedEffect(pollingWanted) {
+        Ccu.setPollingEnabled(pollingWanted)
+        if (pollingInitialized) {
+            Ble.note(
+                if (pollingWanted) "回到座舱 · 恢复 IO/dyn 读取"
+                else "离开座舱 · 暂停 IO/dyn 读取",
+            )
+        }
+        pollingInitialized = true
+    }
+
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestMultiplePermissions(),
     ) { granted ->
@@ -390,8 +404,6 @@ fun PintaApp() {
         }
 
         if (showLink) {
-            // 控制台打开期间暂停 IO 轮询：否则 BT RAW 每秒被 8 帧刷屏，还会跟 LAYOUT/BANDWIDTH 抢请求锁
-            LaunchedEffect(Unit) { Ccu.stopIoPolling() }
             LinkConsole(
                 link = link,
                 devices = devices,
@@ -399,7 +411,6 @@ fun PintaApp() {
                 onClose = {
                     Ble.stopScan()
                     Ccu.stopBandwidthTest()
-                    Ccu.startIoPolling()
                     showLink = false
                 },
                 onScan = { scanWithPermission() },

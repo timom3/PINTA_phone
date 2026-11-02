@@ -795,3 +795,4 @@ CCP PROTOCOL weight 1.15
 | **v3.4** | **座舱 Y 轴降档记忆时间 60s → 2s；量程心跳由 1s 改为 250ms，尖峰离开窗口后约 2～2.25s 回落（`MotorAxis.HOLD_MS = 2000`）** |
 | **v3.5** | **前台保持屏幕常亮：`MainActivity` 加 `FLAG_KEEP_SCREEN_ON`（系统仍可调暗，但不熄屏/不锁屏），避免锁屏/Doze 影响 BLE 连接与 20Hz 轮询** |
 | **v3.6** | **Y 轴量程收尾：降档心跳拆成独立 250ms 轮询（原来挂在 `LaunchedEffect(traceMaxAbs)` 里，key 每帧都变、协程不停重启，`while` 里的 delay 永远走不到，数据静止时不降档）；断线时 `MotorAxis.reset()` 回 ±1.0；历史弹窗用 `DisposableEffect` 兜底 `resumeDyn`，避免 Activity 重建后 dyn 永久暂停** |
+| **v3.7** | **EVENT 条组件化到所有页面（`components/EventStrip` + `LogSheet`）：座舱显示链路日志（`Ble.log`），调校/监控/设置各走 `UiLog` 独立通道（Tune/Scope/Setup，各留 120 行），点开都是 8 行定高 + 内部滚动；离开座舱自动暂停 IO/dyn 轮询、回来恢复，并在链路日志记「离开座舱 · 暂停 / 回到座舱 · 恢复」；同时修掉「切页后刷新率重复上报」——`rateReported` 改由 `clearIo()` 在断线时复位** |

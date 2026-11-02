@@ -4,6 +4,39 @@
 座舱逐版实现细节（v1.0–v3.x 每一版改了什么）另见
 [docs/P1_COCKPIT_IMPLEMENTATION.md](docs/P1_COCKPIT_IMPLEMENTATION.md) 末尾的版本表。
 
+## [0.1.2] — 2026-11-02
+
+EVENT 条从座舱页的私有实现抽成通用组件，四个页面都能看到各自的日志。`versionCode 2 → 3`。
+
+### 新增
+
+- **`ui/components/EventStrip.kt`**：底部 EVENT 条 + 点开的 `LogSheet`（8 行定高、内部滚动、
+  新日志自动贴底、`CLR` 清空）。座舱传 `Ble.log` 显示链路事件，其余页面传 `UiLog` 的通道
+- **`core/UiLog.kt`**：三条独立日志通道 `Tune` / `Scope` / `Setup`（`LogChannel` 枚举自带
+  面板标题与空态文案），各留 120 行，格式与链路日志一致 `HH:mm:ss.SSS  文本`
+- 调校：进入调校、打开模块、读取/写入/保存 Flash 都写 `TUNE LOG`
+- 监控：8 通道从"前两个高亮"改成真正可勾选，勾选/取消写 `SCOPE LOG`
+- 设置：车辆参数改读 `SpeedSettings` 真实标定值（`ωPU → RPM`、轮周长），进入页面写 `SYSTEM LOG`
+
+### 变更
+
+- **离开座舱页自动暂停 IO/dyn 轮询**（`Ccu.setPollingEnabled`），回到座舱恢复，并在链路日志
+  记「离开座舱 · 暂停 IO/dyn 读取」/「回到座舱 · 恢复 IO/dyn 读取」。
+  原来只有打开蓝牙控制台才暂停，现在统一成 `tab == Dash && !showLink`
+- `EventStrip` 的着色函数 `eventLineColor` 比原来的 `logLineColor` 多了「暂停」→ 橙、「恢复」→ 绿，
+  新页面的日志也能正确上色
+
+### 修复
+
+- **切页后实测刷新率会重复上报**：`rateReported = false` 原来写在 `startIoPolling()` 里，
+  每次离开再回到座舱都会重置、重新写一条「刷新率 dyn …」。现在改由 `clearIo()` 在断线时复位，
+  一次连接只报一次
+
+### 文档
+
+- `docs/P1_COCKPIT_IMPLEMENTATION.md` 补 v3.7，并修掉新加的那行误用了 v3.6 编号（表里出现两条 v3.6）
+- README 状态表同步监控/设置的现状
+
 ## [0.1.1] — 2026-10-29
 
 座舱 03–06 四个速览窗口的曲线量程、历史回看和屏幕常亮。`versionCode 1 → 2`。

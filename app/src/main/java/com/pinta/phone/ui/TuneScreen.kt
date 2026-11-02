@@ -18,6 +18,9 @@ import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -25,6 +28,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pinta.phone.ble.LinkState
+import com.pinta.phone.core.LogChannel
+import com.pinta.phone.core.UiLog
+import com.pinta.phone.ui.components.EventStrip
 import com.pinta.phone.ui.components.PintaCard
 import com.pinta.phone.ui.components.PintaTopBar
 import com.pinta.phone.ui.components.SectionLabel
@@ -97,16 +103,27 @@ fun TuneScreen(
     onLinkClick: () -> Unit,
     onOpen: (String) -> Unit,
 ) {
+    val logs by UiLog.flow(LogChannel.Tune).collectAsState()
+    LaunchedEffect(Unit) {
+        UiLog.note(LogChannel.Tune, "进入调校 · ${tuneEntries.size} 个模块")
+    }
     Column(modifier = Modifier.fillMaxSize().background(Ink)) {
         Column(
             modifier = Modifier
-                .fillMaxSize()
+                .weight(1f)
+                .fillMaxWidth()
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 16.dp, vertical = 14.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             tuneEntries.forEach { entry ->
-                PintaCard(padding = 0.dp, onClick = { onOpen(entry.key) }) {
+                PintaCard(
+                    padding = 0.dp,
+                    onClick = {
+                        UiLog.note(LogChannel.Tune, "打开「${entry.title}」")
+                        onOpen(entry.key)
+                    },
+                ) {
                     Row(
                         modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 15.dp),
                         verticalAlignment = Alignment.CenterVertically,
@@ -144,6 +161,13 @@ fun TuneScreen(
             Spacer(Modifier.height(4.dp))
             WriteFlowNote()
         }
+        EventStrip(
+            logs = logs,
+            sheetTitle = LogChannel.Tune.sheetTitle,
+            emptyText = LogChannel.Tune.emptyText,
+            onClear = { UiLog.clear(LogChannel.Tune) },
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+        )
     }
 }
 

@@ -68,6 +68,7 @@ import com.pinta.phone.ble.Ble
 import com.pinta.phone.ble.Ccu
 import com.pinta.phone.ble.LinkState
 import com.pinta.phone.core.Telemetry
+import com.pinta.phone.ui.components.EventStrip
 import com.pinta.phone.core.MotorAxis
 import com.pinta.phone.core.f0
 import com.pinta.phone.core.SpeedSettings
@@ -246,7 +247,19 @@ fun DashScreen(link: LinkState) {
                     if (t.faultCode != 0) {
                         FaultBanner(t.faultCode)
                     }
-                    EventStrip(link)
+                    // 座舱的 EVENT 显示链路事件（Ble.log）
+                    EventStrip(
+                        logs = Ble.log.collectAsState().value,
+                        sheetTitle = "LINK LOG",
+                        emptyText = "NO BT EVENT",
+                        latestColor = when (link) {
+                            is LinkState.Connected -> TextFaint
+                            is LinkState.Error -> Danger
+                            LinkState.Connecting, is LinkState.Reconnecting -> Amber
+                            LinkState.Disconnected -> TextDim
+                        },
+                        onClear = { Ble.clearLog() },
+                    )
                 }
             }
         }
@@ -1093,160 +1106,6 @@ private fun ResponsePanel(
             )
         }
     }
-}
-
-@Composable
-private fun EventStrip(link: LinkState) {
-    val logs by Ble.log.collectAsState()
-    var showLog by remember { mutableStateOf(false) }
-    val latest = logs.lastOrNull()
-    // 最新一条蓝牙消息的颜色：连上是灰的，重连是橙的，错误是红的
-    val latestColor = when (link) {
-        is LinkState.Connected -> TextFaint
-        is LinkState.Error -> Danger
-        LinkState.Connecting, is LinkState.Reconnecting -> Amber
-        LinkState.Disconnected -> TextDim
-    }
-
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(18.dp)
-            .clickable { showLog = true }
-            .padding(horizontal = 1.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text("EVENT", fontFamily = Mono, fontSize = 8.sp, color = TextFaint)
-        Spacer(Modifier.width(6.dp))
-        Text(
-            text = latest ?: "NO BT EVENT",
-            fontFamily = Mono,
-            fontSize = 8.sp,
-            color = latestColor,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.weight(1f),
-        )
-    }
-
-    if (showLog) {
-        LinkLogSheet(logs = logs, onDismiss = { showLog = false })
-    }
-}
-
-/** 点 EVENT 条弹出的蓝牙链路日志：能翻到"链路断开 / 重连"这些事件。 */
-private val LogRowHeight = 11.dp
-private const val LogMaxVisibleRows = 8
-private val LogRowGap = 3.dp
-private val LogListPadding = 6.dp
-private val LogListMaxHeight =
-    LogRowHeight * LogMaxVisibleRows + LogRowGap * (LogMaxVisibleRows - 1) + LogListPadding * 2
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun LinkLogSheet(logs: List<String>, onDismiss: () -> Unit) {
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    val scrollState = rememberScrollState()
-    LaunchedEffect(logs.size) {
-        if (logs.isNotEmpty()) {
-            // 等一帧让 maxValue 反映最新高度，再贴到底（新日志在下方）
-            withFrameNanos { }
-            scrollState.scrollTo(scrollState.maxValue)
-        }
-    }
-    // 面板高度按 8 条算（LogListMaxHeight），再多就在列表里自己滑，不会一直往上长
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = sheetState,
-        containerColor = Ink,
-        dragHandle = {
-            Box(Modifier.padding(top = 10.dp).size(36.dp, 3.dp).background(Hairline))
-        },
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .navigationBarsPadding()
-                .padding(horizontal = 10.dp)
-                .padding(bottom = 12.dp),
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    text = "LINK LOG",
-                    fontFamily = Mono,
-                    fontSize = 10.sp,
-                    fontWeight = FontWeight.Medium,
-                    letterSpacing = 1.2.sp,
-                    color = Phosphor,
-                )
-                Spacer(Modifier.width(6.dp))
-                Text("${logs.size}", fontFamily = Mono, fontSize = 8.sp, color = TextFaint)
-                Spacer(Modifier.weight(1f))
-                Text(
-                    text = "CLR",
-                    fontFamily = Mono,
-                    fontSize = 9.sp,
-                    color = TextDim,
-                    modifier = Modifier.clickable { Ble.clearLog() }.padding(horizontal = 8.dp),
-                )
-                Text(
-                    text = "CLOSE",
-                    fontFamily = Mono,
-                    fontSize = 9.sp,
-                    color = TextDim,
-                    modifier = Modifier.clickable(onClick = onDismiss).padding(horizontal = 8.dp),
-                )
-            }
-            Spacer(Modifier.height(6.dp))
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(max = LogListMaxHeight)
-                    .background(SurfaceLow.copy(alpha = 0.2f))
-                    .border(1.dp, Hairline),
-            ) {
-                if (logs.isEmpty()) {
-                    Text(
-                        text = "NO BLE EVENT",
-                        fontFamily = Mono,
-                        fontSize = 8.sp,
-                        color = TextFaint,
-                        modifier = Modifier.align(Alignment.Center).padding(vertical = 24.dp),
-                    )
-                } else {
-                    // 普通 Column + scroll：内容少时不高、内容多时固定 8 行高，滚到底不会有空白
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .verticalScroll(scrollState)
-                            .padding(LogListPadding),
-                        verticalArrangement = Arrangement.spacedBy(LogRowGap),
-                    ) {
-                        logs.forEach { line ->
-                            Text(
-                                text = line,
-                                fontFamily = Mono,
-                                fontSize = 8.sp,
-                                lineHeight = 10.sp,
-                                color = logLineColor(line),
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                                modifier = Modifier.height(LogRowHeight),
-                            )
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-private fun logLineColor(line: String): Color = when {
-    line.contains("断开") || line.contains("失败") ||
-        line.contains("未成功") || line.contains("中断") -> Danger
-    line.contains("重连") -> Amber
-    line.contains("服务就绪") || line.contains("MTU=") -> Phosphor
-    else -> TextDim
 }
 
 @Composable
